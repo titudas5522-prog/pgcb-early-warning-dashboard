@@ -184,7 +184,11 @@ if st.button("Authenticate & Send SMS Alert"):
         if combined_risk in ["CRITICAL", "HIGH RISK"]:
             
             # তোমার ড্যাশবোর্ডের ডেটা দিয়ে মেসেজ তৈরি
-            alert_msg = f"Intelligent Early Warning System: {combined_risk} on 132kV Feeder. Freq={freq_input}Hz, Volt={volt_input}kV, Load={load_input}MW."
+                                alert_msg = (
+                f"GRID ALERT: {combined_risk.split()[0]} Load Shedding Risk at Khulshi Substation "
+                f"(Zone: Khulshi, GEC, Nasirabad). V:{volt_input}kV F:{freq_input}Hz Load:{load_input}MW. "
+                f"Action Required. Details: pgcb-outage-warning.streamlit.app"
+            )
             
             # Claude এর কোডের সঠিক API Key এবং পদ্ধতি
             API_KEY = "aENv71GgsFH684eSQs71jFyrnw422xgc6xhHDgH2" 
