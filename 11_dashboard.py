@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 from dateutil import parser
-import requests
+import urllib.request
+import urllib.parse
+import urllib.error
+import json
 
 # ==========================================
 # 1. PAGE SETUP & TITLE
@@ -71,7 +74,7 @@ l_status, l_color, l_desc = assess_load(load_input)
 c_status, c_color, c_desc = assess_current(curr_input)
 
 # ==========================================
-# 5. COMBINED RISK LOGIC (Grid Code 2023)
+# 5. COMBINED RISK LOGIC
 # ==========================================
 all_risks = [f_status, v_status, l_status, c_status]
 
@@ -89,12 +92,11 @@ else:
     combined_color = "green"
 
 # ==========================================
-# 6. DISPLAY: COMBINED RISK & SMS TRIGGER MESSAGE
+# 6. DISPLAY: COMBINED RISK
 # ==========================================
 st.markdown("---")
 st.markdown(f"<h1 style='text-align: center; color: {combined_color}; border: 3px solid {combined_color}; padding: 15px; border-radius: 10px;'>COMBINED RISK: {combined_risk}</h1>", unsafe_allow_html=True)
 
-# এখানে তোমার চাহিদা অনুযায়ী লজিক বসানো হলো
 if combined_risk in ["CRITICAL", "HIGH RISK"]:
     st.markdown("<h3 style='text-align: center; color: red;'>IMMEDIATE SMS ALERT TRIGGERED</h3>", unsafe_allow_html=True)
 elif combined_risk == "WARNING":
@@ -129,15 +131,8 @@ col4.caption(c_desc)
 st.markdown("---")
 
 # ==========================================
-# 8. DISPLAY: PASSWORD PROTECTED SMS SYSTEM
+# 8. SMS API FUNCTION & ALERT SYSTEM
 # ==========================================
-import urllib.request
-import urllib.parse
-import urllib.error
-import json
-import html
-
-# Claude AI থেকে নেওয়া SMS পাঠানোর ফাংশন (যা তোমার ফোনে কাজ করেছিল)
 def sms_api_call(path, params, method="POST"):
     encoded = urllib.parse.urlencode(params)
     if method == "POST":
@@ -183,18 +178,15 @@ if st.button("Authenticate & Send SMS Alert"):
     else:
         if combined_risk in ["CRITICAL", "HIGH RISK"]:
             
-            # তোমার ড্যাশবোর্ডের ডেটা দিয়ে মেসেজ তৈরি
-                                alert_msg = (
+            alert_msg = (
                 f"GRID ALERT: {combined_risk.split()[0]} Load Shedding Risk at Khulshi Substation "
                 f"(Zone: Khulshi, GEC, Nasirabad). V:{volt_input}kV F:{freq_input}Hz Load:{load_input}MW. "
                 f"Action Required. Details: pgcb-outage-warning.streamlit.app"
             )
             
-            # Claude এর কোডের সঠিক API Key এবং পদ্ধতি
             API_KEY = "aENv71GgsFH684eSQs71jFyrnw422xgc6xhHDgH2" 
             
             with st.spinner("Sending SMS..."):
-                # এখানে sms_api_call ফাংশনটি ব্যবহার করা হচ্ছে
                 result = sms_api_call(
                     "/sendsms",
                     {"api_key": API_KEY, "msg": alert_msg, "to": phone_number},
@@ -203,7 +195,6 @@ if st.button("Authenticate & Send SMS Alert"):
                 
                 if result.get("error") == 0:
                     st.success(f"✅ Real SMS Sent successfully to {phone_number}!")
-                    # ডেলিভারি রিপোর্ট চেক করা (Claude এর কোডের মতো)
                     request_id = (result.get("data") or {}).get("request_id")
                     if request_id:
                         st.info(f"Gateway Request ID: {request_id}")
