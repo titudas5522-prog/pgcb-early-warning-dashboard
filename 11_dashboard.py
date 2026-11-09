@@ -131,8 +131,13 @@ col4.caption(c_desc)
 st.markdown("---")
 
 # ==========================================
-# 8. SMS API FUNCTION & ALERT SYSTEM
+# 8. AUTOMATIC SMS ALERT SYSTEM
 # ==========================================
+import urllib.request
+import urllib.parse
+import urllib.error
+import json
+
 def sms_api_call(path, params, method="POST"):
     encoded = urllib.parse.urlencode(params)
     if method == "POST":
@@ -162,46 +167,46 @@ def sms_api_call(path, params, method="POST"):
     except json.JSONDecodeError:
         return {"error": "format", "msg": "Gateway returned invalid data."}
 
-st.subheader("📱 SMS Alert System (Secure)")
+# ==========================================
+# AUTOMATIC SMS TRIGGER LOGIC
+# ==========================================
+st.subheader("📱 Automatic SMS Alert System")
 
-col_phone, col_pass = st.columns(2)
-with col_phone:
-    phone_number = st.text_input("Enter Operator Phone Number:", value="8801581231492") 
-with col_pass:
-    password = st.text_input("Enter System Password:", type="password")
+# তোমার ফোন নাম্বারগুলো এখানে লিখে দাও (যত খুশি তত নাম্বার দিতে পারো)
+RECIPIENTS = [
+    "8801581231492",  # তোমার নাম্বার
+    "8801759335310",  # আরেকজনের নাম্বার (এখানে পরিবর্তন করো)
+    "8801745119792"   # আরেকজনের নাম্বার (এখানে পরিবর্তন করো)
+]
 
-if st.button("Authenticate & Send SMS Alert"):
-    if password != "pgcb2026":
-        st.error("❌ Access Denied: Incorrect Password.")
-    elif not phone_number:
-        st.warning("Please enter a valid phone number.")
-    else:
-        if combined_risk in ["CRITICAL", "HIGH RISK"]:
-            
-            alert_msg = (
-                f"GRID ALERT: {combined_risk.split()[0]} Load Shedding Risk at Khulshi Substation "
-                f"(Zone: Khulshi, GEC, Nasirabad). V:{volt_input}kV F:{freq_input}Hz Load:{load_input}MW. "
-                f"Action Required. Details: pgcb-outage-warning.streamlit.app"
+API_KEY = "aENv71GgsFH684eSQs71jFyrnw422xgc6xhHDgH2"
+
+# চেক করা হচ্ছে রিস্ক High বা Critical কিনা
+if combined_risk in ["CRITICAL", "HIGH RISK"]:
+    
+    # মেসেজ তৈরি (লিংক ছাড়া, শুধু ডেটা)
+    alert_msg = (
+        f"GRID ALERT: {combined_risk.split()[0]} Load Shedding Risk at Khulshi Substation "
+        f"(Zone: Khulshi, GEC, Nasirabad). V:{volt_input}kV F:{freq_input}Hz Load:{load_input}MW. "
+        f"Action Required."
+    )
+    
+    st.warning(f"⚠️ {combined_risk} detected! Sending automatic SMS to {len(RECIPIENTS)} numbers...")
+    
+    # প্রতিটি নাম্বারে SMS পাঠানো হচ্ছে
+    for number in RECIPIENTS:
+        with st.spinner(f"Sending to {number}..."):
+            result = sms_api_call(
+                "/sendsms",
+                {"api_key": API_KEY, "msg": alert_msg, "to": number},
+                method="POST"
             )
             
-            API_KEY = "aENv71GgsFH684eSQs71jFyrnw422xgc6xhHDgH2" 
-            
-            with st.spinner("Sending SMS..."):
-                result = sms_api_call(
-                    "/sendsms",
-                    {"api_key": API_KEY, "msg": alert_msg, "to": phone_number},
-                    method="POST"
-                )
-                
-                if result.get("error") == 0:
-                    st.success(f"✅ Real SMS Sent successfully to {phone_number}!")
-                    request_id = (result.get("data") or {}).get("request_id")
-                    if request_id:
-                        st.info(f"Gateway Request ID: {request_id}")
-                else:
-                    st.error(f"API Error: {result.get('msg', 'Unknown error')} (Code: {result.get('error')})")
+            if result.get("error") == 0:
+                st.success(f"✅ SMS Sent to {number}!")
+            else:
+                st.error(f"❌ Failed to send to {number}: {result.get('msg')}")
 
-        elif combined_risk == "WARNING":
-            st.warning("Notification Sent: System is in Warning state. No SMS required.")
-        else:
-            st.success("Grid is Normal. No SMS required.")
+else:
+    st.info("✅ System is in Normal or Warning state. No SMS will be sent.")
+    st.markdown(f"**Current Combined Risk:** {combined_risk}")
